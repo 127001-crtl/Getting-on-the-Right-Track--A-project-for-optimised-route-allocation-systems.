@@ -1,0 +1,396 @@
+
+%Getting on the Right Track: A project for optimised route allocation systems.
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+
+%This is for Visual Studio Code compiler only.
+\usepackage{hyperref}
+\hypersetup{
+    pdftitle={Optimised Route Allocation System},
+    pdfauthor={Rafael Kozal},
+    pdfcreator={LaTeX},
+    pdfproducer={LaTeX Engine} % Or omit to let the engine populate it automatically
+}
+
+% Core packages
+\usepackage{amsmath,amssymb}
+\usepackage{tikz-cd}
+\usepackage{multicol}
+\usepackage{booktabs}% For professional table lines (\toprule, \midrule, \bottomrule)
+\usepackage[backend=biber,style=authoryear]{biblatex}
+\addbibresource{references.bib}
+\usepackage[inline]{enumitem} % for inline lists
+\usepackage[title]{appendix} % so the title of appendix is appendix and not A
+\usepackage{pdflscape}   % rotates a single page to landscape
+\usepackage{longtable}   % lets a table span multiple pages
+
+\usepackage{graphicx} %for images
+\usepackage{float} % floating images
+\usepackage{subcaption} %capions for two images
+\captionsetup[subfigure]{labelformat=parens,subrefformat=parens}
+
+
+% Paragraphs
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{1\baselineskip}
+
+\title{Optimised Route Allocation System\\\large Computer Science GCE A Level Non-Examined Assessment}
+\author{Candidate Name: Rafael Kozal\\Centre Number: \rule{4cm}{0.4pt}\\Candidate Number: \rule{4cm}{0.4pt}}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{center}
+\textbf{Project Summary}
+\end{center}
+
+This project will design, develop, and evaluate an optimised route allocation system for an organisation such as a supermarket, courier business, or local delivery company. The system will help allocate deliveries to multiple drivers while attempting to minimise total travel distance, reduce inefficient routing, and respect real-world constraints such as vehicle capacity, route length, customer delivery time windows with respect to tolls.
+
+The underlying optimisation problem is the Capacitated Vehicle Routing Problem with Time Windows, abbreviated CVRPTW. In this well-known computer science problem, a fleet of vehicles must visit a set of customer locations. Each vehicle has limited capacity, and each customer may only be served within a specified time period. Although finding a perfectly optimal solution can be computationally expensive for larger inputs, the project will aim to produce high-quality routes using algorithms and heuristics that are practical for a real delivery environment.
+
+\newpage
+\tableofcontents
+\newpage
+
+\section{Introduction}
+
+Many supermarkets and delivery-based companies must organise large numbers of daily deliveries. Each order has a destination, a demand value (such as weight or number of items), and often a delivery window. At the same time, each delivery vehicle has a maximum carrying capacity and each driver may only be able to travel for a limited distance or duration. If routes are planned manually, the process can be slow, inconsistent, and inefficient as such routes may lead to unnecessary fuel costs, late deliveries, underused vehicles, and increased pressure on staff (which may result in accidents).
+
+The aim of this project is to create an optimised route allocation system that supports a delivery manager in assigning deliveries to drivers. The system will take a set of delivery requests and vehicle details as input, then generate routes that attempt to satisfy all constraints while keeping the overall route cost as low as possible. Route cost may include total distance, number of vehicles used, estimated travel time, or a combination of these factors. The final system should present the generated routes clearly so that a user can understand which deliveries have been allocated to each driver and in what order they should be completed.
+
+This project is suitable for a Computer Science GCE A Level Non-Examined Assessment because it involves several important computational concepts. These include graph representation, data modelling, algorithm design, optimisation, validation, testing, and evaluation. Locations can be represented as nodes in a graph, while travel distances or times can be represented as weighted edges. The system can then apply a route construction method, such as a nearest-neighbour or savings-based heuristic, followed by improvement techniques to reduce inefficient journeys. Constraint checking will also be required to ensure that no route exceeds vehicle capacity, route length, or delivery time window limits.
+
+The intended user is a delivery coordinator working for a supermarket or company that manages multiple delivery drivers. The user needs a system that is faster and more reliable than planning routes manually. The system should allow the user to enter, load, or edit delivery and vehicle data, generate optimised route allocations, and view the results in a clear format. If a delivery cannot be allocated because of the given constraints, the system should identify this clearly rather than producing an invalid route.
+
+The project will focus on producing a functional and testable prototype rather than a commercial-scale logistics platform. The prototype will use a realistic sample dataset containing customer locations, demands, vehicle capacities, time windows, and route limits. The success of the project will be judged by whether the system can create valid routes, reduce total travel time compared with a simple baseline approach, and provide understandable outputs for the user.
+
+\subsection{Problem Statement}
+
+A delivery company needs to assign a set of deliveries to a limited number of vehicles. Each delivery has a location, demand, and delivery time window. Each vehicle has a maximum capacity and may have a maximum route length. The system must decide which deliveries should be assigned to each vehicle and the order in which they should be visited, while aiming to minimise route cost and avoid breaking any constraints.
+
+\subsection{Project Aim}
+
+The aim of this project is to develop an optimised route allocation system that can generate efficient and valid delivery routes for multiple drivers while respecting vehicle capacity, delivery time windows, and maximum route length constraints.
+
+\subsection{Initial Objectives}
+\label{Specification} % label for the spec of the project
+\begin{itemize}
+    \item Analyse the needs of a supermarket or delivery company that manages multiple vehicles and customer deliveries.
+    \item Model the delivery network using suitable data structures, including customer nodes, vehicle records, demands, time windows, and distance or travel-time values.
+    \item Design and implement an algorithm that constructs valid vehicle routes while checking capacity, time window, and route length constraints.
+    \item Improve the generated routes using an optimisation technique or heuristic so that the system performs better than a basic baseline method.
+    \item Provide a clear user interface or output format showing each driver's assigned route, delivery order, total load, and route distance or duration.
+    \item Test the system using normal, boundary, and erroneous data to confirm that constraints are handled correctly.
+    \item Evaluate the final system against the project aim, user requirements, and measurable performance criteria.
+\end{itemize}
+
+\newpage
+\section{Analysis}
+
+\subsection{Background}
+\label{sec:background}
+Over the past few decades, the world has bared witness to a surge in globalisation, which has given society a greater access to products from around the world, faster communication, new opportunities, and more convenient ways of living. With just a few clicks, we can now order almost anything and have it delivered to our doorstep. Specifically, Dubai and the wider UAE have seen an exponential growth in deliveries of parcels including food, groceries and e-commerce. Platforms such as Talabat, Noon, Careem, Deliveroo and newer entrants (Keeta) have driven an expansion of last-mile logistics, with estimates stating tens of thousands of workers are working in the sector nationwide, and around 80,000+ working across logistics and delivery ecosystem as a whole. This growth can be accredited towards the high smartphone penentration, on-demand consumer expectation and the post-pandemic normalisation of online ordering.\cite{taxfreesalariesDelivery}
+
+Despite this demand, delivery drivers occupy the lower end of the UAE wage distribution. Aggregated salary data places typical delivery driver earnings in the range of about AED 2,500-4,500 per month, with many roles clustering around AED 3,000-3,500. In practice, riders often work 10-12 hour shifts, six days a week, to achieve these figures, either on fixed salaries with performance bonuses or on a commission-only model where they are paid per completed order. Commission rates reported in the UAE commonly fall between roughly AED 7.5 and AED 10 per trip, aligning with riders' own accounts of “7-9 dirhams an order,” and requiring roughly 15-20 deliveries per day merely to break even after covering fuel, food, accommodation, and visa or agency fees.\cite{indeed_delivery_driver_dubai}
+
+This creates a downstream risk which creates systemic penalties and saftey vulnerabilities. There is a transfer of financial and operational risk onto the driver, as compensation is preformance-oriented or proportional to order volume, time becomes a rider's currency. Any unexcpected delays (whether from traffic congestion, resturant preperation latency or gated community security checks) directly decrease their hourly wage and risk a defecit by pushing them below a financial break-even threshold needed to cover operational costs - fuel, bike leases and living costs. This economic strucutre creates a high pressure environment and feedback loop that directly incentives high risk behaviours on the road. \cite{roadsafetyuae_gig_pay_2024}
+
+\begin{enumerate}
+  \item Algorithmic pressure and customer ratings.
+  Delivery algorithms track live trip time, punishing slow drivers with lower dispatch priorities or reduced access to peak hour shifts. Moreover, customer dissatisfaction over late orders leads to poor ratings which inturn can trigger platform suspensions. \cite{jpost_medialine_gig_investigation_2024}
+  \item Compounding financial penalties. 
+  When delays are financially threatening, drivers absorb the costs. To make up for lost time, drivers often frequently engage in reckless driving practices such as lane weaving, driving in fast lanes and speeding through pedestrain zones. Lane Bans and accident Stats (854 in 2024, 962 in 2025) \cite{dubai_police_rta_2025}
+  \item Rising casualty rates and health impacts. 
+  The combination of extreme heat (in the Gulf Reigons), 10-12+ hour shifts and high speeds leads to extreme fatigue, resulting in more frequent road accidents. Emergency medicine data reports that riders disproportionatlely suffer severe orthopedic and traumatic brain injuries due to high speed collisions. \cite{media_line_sgh_2025}
+\end{enumerate}
+
+\subsection{The Client}
+As on-demand deliveries has become a very large opperational pillar for local businesses, there is a widespread need for intelligent route optimisation. Implementing a Capacited Vehicle Routing solution directly addresses this demand by streamlining dispatch schedules and lowering vehicle running costs. There are many who may benifit from this solution, ranging from local cloud kitchens to independant courier fleets. such solution can maximize operational efficiency and profit margins while actively improving daily working conditions for drivers by reducing peak-hour stress and unnecessary travel. Potential clients include:
+
+Local businesses:
+\begin{enumerate}
+  \item Gourmet catering or meal-prep. Dubai has a huge meal-prep delivery ecosystem. These bussinesses operate by utilising small driver fleets facing strict time windows (often during lunch break in corporate offices) across a very wide span of area -JLT, Dubai Marina or Downtown. 
+  \item Boutique florists or specialty bakery. companies delivering custom cakes, party items or flowers, face strict capcatiy constraints (e.g delicate and fragile goods per vehicle) and have a tight delivery schedule. 
+  \item Independent laundry and dry cleaning services. Operations offering scheduled home pickups and drop-offs operate on recurring and different routes.
+  \item Local cloud kitchen or direct-delivery restaurant. Small independent kitchens using 3 to 5 in-house drivers for direct phone/website orders (rather than aggregator fleets) need route planning for clustered orders.
+  \item School bus departcher from school. Large schools often utilise private transport operators (such as STS - School Transport Services), where they must drop off students at a variety of different loctions. 
+\end{enumerate}
+
+Logistics and fleets:
+\begin{enumerate}
+  \item Local courier fleet. A dispatcher or operations coordinator at a small scale logistics agency in areas such as Al Qouz, Diera or IMPZ.
+  \item E-commerce fullfillment. Any e-commerce or online store running in Dubai who dispatches orders via inhouse drivers.
+\end{enumerate}
+
+Personal proxies
+\begin{enumerate}
+  \item Connections in related fields. A parent, relative or family friend who works and manages sheduling, deliveries or logistics in their main feild of work.  
+\end{enumerate}
+
+%Now that i have listed them, I will come back to this once i have decided on who to chose ,
+\subsubsection{Evaluation of Potential Stakeholders}
+I have formated my options for the intended client into a table. 
+
+\begin{table}[H] %changed from htbp to H. If any errors occour change back?
+\centering
+\small
+\begin{tabular}{@{}p{3.2cm}p{3.8cm}p{3.2cm}p{4.2cm}@{}}
+\toprule
+\textbf{Prospective Client / Role} & \textbf{Operational Fit (CVRPTW)} & \textbf{Accessibility \& Dialogue} & \textbf{Verdict / Decision} \\ \midrule
+\textbf{Option A:} Small Local Courier Fleet Supervisor & High (Manages multiple vehicles, daily drop-offs, routes vary). & Moderate (Requires corporate permissions/scheduling). & \textbf{Secondary Option:} Good backup, but harder to guarantee rapid feedback loops for testing. \\ \midrule
+\textbf{Option B:} Daily Meal-Prep Catering Dispatcher & High (Strict morning time windows, fixed vehicle capacities, localized Dubai zones). & High (Direct access to manager/owner). & \textbf{SELECTED:} Perfect balance of real-world constraints (time windows + capacity) and user availability. \\ \midrule
+\textbf{Option C:} Relative / Family Friend in Logistics (Proxy) & Moderate to High (Understands operational pain points). & Very High (Immediate availability for interviews \& evaluation). & \textbf{Alternative Proxy:} Reliable fallback if business access falls through. \\ \bottomrule
+\end{tabular}
+\caption{Evaluation of Potential Stakeholders}
+\label{tab:stakeholder_evaluation}
+\end{table}
+
+Option B (meal-prep delivery) was selected as the primary client as unlike large logistic firms, where route planning and dispatch algorithms are executed by large corporate industrial software, this business relies on manual schedualing via excel sheets %this is not the case, this is acting as a placeholder for now, 
+
+
+\subsection{Analysis of Existing Systems}
+
+Commercial-grade route planning applications are designed to support more than navigation between two locations. A delivery coordinator can provide a collection of orders, customer addresses, delivery time windows, vehicle capacities and driver availability. The software can then allocate stops between vehicles, determine an efficient visiting order and distribute the resulting routes to drivers. Many delivery-management platforms also provide live driver tracking, estimated arrival times, customer notifications and proof-of-delivery records, allowing the coordinator to monitor orders from dispatch through to completion. \cite{routific_delivery_management,route4me_delivery_management}
+
+The available systems can be divided into different categories. Google OR-Tools is a developer-focused optimisation library capable of modelling vehicle capacities and customer time windows, but it does not provide a complete interface for a delivery coordinator. \cite{google_ortools_routing} In contrast, subscription platforms such as Routific and Route4Me combine route optimisation with dispatcher dashboards and mobile tools for drivers. Comparing these systems with the client's current spreadsheet-based process will identify useful features, limitations and opportunities for the proposed solution. The comparison will focus on suitability for a small meal-prep business rather than attempting to reproduce every feature of a large commercial logistics platform.
+
+\subsubsection{Routific Application Navigation}
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[t]{0.62\textwidth}
+        \centering
+        {\setlength{\fboxsep}{1pt}%
+         \setlength{\fboxrule}{0.5pt}%
+         \fbox{\includegraphics[width=\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax,keepaspectratio]{Images/Routific/Home_Page.png}}}
+        \caption{Routific main dashboard view.}
+        \label{fig:routific_main}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.32\textwidth}
+        \centering
+        \hspace*{0.35cm}{%
+            \setlength{\fboxsep}{1pt}%
+            \setlength{\fboxrule}{0.5pt}%
+            \fbox{\includegraphics[height=7cm,keepaspectratio]{Images/Routific/Sidebar.png}}%
+        }
+        \caption{Routific navigation sidebar.}
+        \label{fig:routific_sidebar}
+    \end{subfigure}
+    \caption{Routific capacity and time window interface.}
+    \label{fig:routific_capacity}
+\end{figure}
+%Basically what this does is it combines Home_Page.png and Sidebar.png together horizontally like MS365 Word would do.
+Figure~\ref{fig:routific_capacity}\subref{fig:routific_main} shows the full-screen dashboard displayed after the user logs in to Routific. The navigation sidebar appears on the left, with the Orders button highlighted to indicate that the order-management workspace is active. A map of Dubai (using OpenStreetMap) is displayed in the background, while input fields in the foreground allow the user to enter each driver's starting location and shift start time.
+
+Figure~\ref{fig:routific_capacity}\subref{fig:routific_sidebar} shows the navigation sidebar displayed when the Routific route-planning interface is opened. It contains the following options, listed from top to bottom:
+\begin{enumerate*}[label=(\alph*)]
+  \item workspaces,
+  \item orders
+  \item customers
+  \item routes
+  \item drivers
+  \item insights
+  \item route prefrencing
+  \item help
+  \item company settings
+  \item user settings and log out
+\end{enumerate*}
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[t]{0.48\textwidth}
+        \centering
+        {\setlength{\fboxsep}{1pt}%
+         \setlength{\fboxrule}{0.5pt}%
+         \fbox{\includegraphics[height=7.05cm,keepaspectratio]{Images/Routific/Optimised Routes Map.png}}}
+        \caption{Overall optimised routes map.}
+        \label{fig:routific_optimised_map}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.23\textwidth}
+        \centering
+        {\setlength{\fboxsep}{1pt}%
+         \setlength{\fboxrule}{0.5pt}%
+         \fbox{\includegraphics[height=7.05cm,keepaspectratio]{Images/Routific/Optimised_Route_1.png}}}
+        \caption{Optimised Route 1.}
+        \label{fig:routific_route_one}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.23\textwidth}
+        \centering
+        {\setlength{\fboxsep}{1pt}%
+         \setlength{\fboxrule}{0.5pt}%
+         \fbox{\includegraphics[height=7.05cm,keepaspectratio]{Images/Routific/Optimised_Route_2.png}}}
+        \caption{Optimised Route 2.}
+        \label{fig:routific_route_two}
+    \end{subfigure}
+    \caption{Routific's overall optimised route map and the two individual driver routes.}
+    \label{fig:routific_optimised_routes}
+\end{figure}
+To evaluate how commercial solvers handle the constraints identified in Section \ref{Specification} for CVRPTW a test dataset of 20 localized delivery orders was generated and imported into Routific (by using Comma-Seperated Values format). Each record and value was configured with a specific geographic location, a volumetric load value (metric based from 0-10, with 0 being ) and a strict delivery time window to stress-test the system's scheduling algorithm. A small snippet of the sample data set is provided here.
+
+%VERY IMPORTANT NOTE RAF, U HAVE TO TAKE A NEW SS OF THE OPTIMISED ROUTE 1 AND 2 WITH THE NEW TIMES DO NOT FORGET CUZ LATER IN FINDINGS U USE A NEW SS WITH DIFF TIMES.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{@{}lllc@{}}
+\toprule
+\textbf{Order ID} & \textbf{Address / Coordinates} & \textbf{Time Window} & \textbf{Load} \\ \midrule
+ORD-001 & Dubai Marina, Tower A & 08:00 - 10:00 & 4 \\
+ORD-002 & Jumeirah Lakes Towers, Cluster C & 08:30 - 11:00 & 2 \\
+ORD-003 & Business Bay, Executive Towers & 10:00 - 12:30 & 5 \\
+ORD-004 & Downtown Dubai, Boulevard & 14:00 - 16:00 & 3 \\ \bottomrule
+\end{tabular}
+\caption{Sample extract of the custom CSV dataset imported into Routific (See Appendix \ref{Sample Data} for full dataset).}
+\label{tab:csv_sample}
+\end{table}
+
+%Figure~\ref{fig:routific_route_two}\subref{fig:routific_optimised_map} = Figure 2ca??
+Figure~\ref{fig:routific_optimised_map} together showcases the algorithm's result of the automatic "Schedule all" optimisation. Both Figure~\ref{fig:routific_optimised_routes}\subref{fig:routific_route_one} and Figure~\ref{fig:routific_optimised_routes}\subref{fig:routific_route_two} contain the following headlined metrics: 
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Metric} & \textbf{Overall} & \textbf{Optimised Route 1} & \textbf{Optimised Route 2} \\ \midrule
+Routes       & 2                   & 1                            & 1                            \\
+Orders       & 20                  & 2                            & 18                           \\
+Distance     & 266.07 km           & 61.1 km                      & 205 km                       \\
+Working time & 24 h 43 min / 31 h  & 10 h 10 min / 15 h 30 min    & 14 h 10 min / 15 h 30 min    \\
+Capacity & 85                & 8                            & 77                           \\ \bottomrule
+\end{tabular}
+\caption{Summary of Routific's overall optimisation and individual route metrics.}
+\label{tab:routific_route_metrics}
+\end{table}
+
+\subsubsection{Findings}
+The solution generated by Routific's inbuilt algorithm unveiled a substancial imbalance between the two drivers. Optimised route 1 (Figure~\ref{fig:routific_optimised_routes}\subref{fig:routific_route_one}) was assigned only 2 of the 20 orders, a combined load of 8 and a distance of 61.1 kilometres. In stark contrast, Optimised route 2 recieved the remaining 18 orders, a combined load of 77 and approximately 205 kilometres. Although every order was allocated and two routes were made, the workload was not distributed evenly as Optimised route two contained 90\% of the orders and around 91\% of the total load. This imbalance is notable given the driver welfare concerns raised in Section \ref{sec:background}. An optimised route allocation system that minimises total distance without workload balance risks reproducing the same over-burdening dynamics aformentioned by concentrating the pressure onto the drivers. 
+
+Furthermore, Routific also produced a solution using only two drivers, although the dataset only contained order information and did not itself establish a set amount of drivers or that 2 drivers would be an appropriate fleet size. This sudgests that the number of avaliable drivers in Optimised route map (Figure~\ref{fig:routific_optimised_routes}\subref{fig:routific_optimised_map}) may have been infered by the route-planning algorithm rather than calculeted from the imported orders. Consequently, a system designed for the intended client should require the fleet size, vehicle capacities and driver shift limits to be entered explicitly rather than anticipation or estimation. To determine whether this result was a of a single occurrence, I submitted the same dataset again again. Routific reproduced the exact same two layouts and the same uneven distributions. I also altred the drivers' shift times but the imbalance remained. Reproducing the results under an altered conditions provides evidance that the outcome was not an isolated anomaly but may instead be caused by Routific's internal processes. 
+
+The difference in working time was also of concern. One driver was given a comparatively small number of deliveries (2) and a long period without any deliveries being made, yet was allocated approximately 9 hours of working time. As an independent comparison, I entered the locations assigned to Optimised Route 2 into Google Maps. At the time of capture and under low-traffic conditions, Google Maps estimated a total driving time of approximately 53 minutes, as shown in Figure~\ref{fig:routific_time_comparison}\subref{fig:google_maps_drive_time}. This estimate is not directly equivalent to Routific's working-time figure because the systems use different path-finding methods and Google Maps does not include service durations, waiting for time windows or breaks. Nevertheless, the large difference suggests that a significant proportion of the scheduled time resulted from waiting and scheduling constraints rather than transportation alone. The break periods allocated by Routific are shown in Figure~\ref{fig:routific_time_comparison}\subref{fig:routific_break_times}.
+
+Another potential source of error is geographic ambiguity. Different streets, buildings or districts may share the same or a very similar name, meaning that an incomplete address could be matched to the wrong coordinates. As demonstrated in Figure~\ref{fig:routific_time_comparison}\subref{fig:routific_geographic_mixup}, this could place a delivery in an unintended location and consequently distort the calculated distance, journey time and allocation of orders between drivers. To reduce this risk, my system should geocode and validate every address before route planning begins. Where multiple matches are found, it should display the standardised address and map location for user confirmation, request additional information such as an area name or coordinates, and prevent optimisation until the ambiguity has been resolved.
+
+
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[t]{0.94\textwidth}
+        \centering
+        {\setlength{\fboxsep}{2pt}%
+         \setlength{\fboxrule}{0.5pt}%
+         \fbox{\includegraphics[width=0.97\linewidth]{Images/Routific/Optimised Routes 1 and 2 with break times showing.png}}}
+        \caption{Routific schedules for both routes, including the allocated break periods.}
+        \label{fig:routific_break_times}
+    \end{subfigure}
+
+    \vspace{0.8em}
+
+    \begin{subfigure}[t]{0.46\textwidth}
+        \centering
+        {\setlength{\fboxsep}{2pt}%
+         \setlength{\fboxrule}{0.5pt}%
+         \fbox{\includegraphics[height=6.6cm,keepaspectratio]{Images/Routific/Google Maps Average Drive Time.png}}}
+        \caption{Independent Google Maps estimate of approximately 53 minutes under low-traffic conditions.}
+        \label{fig:google_maps_drive_time}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.46\textwidth}
+        \centering
+        {\setlength{\fboxsep}{2pt}%
+         \setlength{\fboxrule}{0.5pt}%
+         \fbox{\includegraphics[height=7.8cm,keepaspectratio]{Images/Routific/Geographic mixup.PNG}}}
+        \caption{Geographic mix-up identified in Routific's generated route allocation.}
+        \label{fig:routific_geographic_mixup}
+    \end{subfigure}
+    \caption{Comparison of Routific's generated schedules with independent driving-time and geographic evidence.}
+    \label{fig:routific_time_comparison}
+\end{figure}
+
+\subsubsection{Summary of Routific Analysis}
+The investigation identified several design choices that may make Routific unsuitable for the intended small-business client and that should be addressed differently in my own system:
+
+\begin{enumerate}
+    \item Workload imbalance. Routific produced routes containing 2 and 18 stops respectively, with no visible mechanism for balancing work between drivers. My optimisation method should therefore penalise large differences in stop count and allocated load, rather than considering only the total distance or overall fleet load.
+    \item Capacity applied after route construction. In the observed workflow, routes were clustered before a specific driver and vehicle capacity were attached. This creates uncertainty over whether an existing route will be rejected or rebuilt when the assigned vehicle has insufficient capacity. My system should check vehicle capacity while constructing and improving each route, rather than treating it as a downstream assignment problem.
+    \item Manual geographic resolution. Ambiguous addresses required the user to identify and correct the selected map location manually. My system should detect multiple geocoding matches before optimisation and require the user to confirm the intended address or coordinates.
+    \item Subscription access. The interface displayed a limited free trial and an ``Upgrade'' prompt, indicating that continued use requires a paid subscription. This may be a barrier for a small meal-prep business, whereas the proposed bespoke system would not impose a recurring software-subscription charge on the client.
+\end{enumerate}
+
+These findings show that an effective route is not defined by distance alone. For the intended client, route validity, balanced driver workloads, reliable address validation and affordable access must also be treated as important system requirements.
+
+
+
+
+\subsection{Evaluation of Pre-existing }
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{@{}p{2.5cm}p{2.5cm}p{2.2cm}p{2cm}p{2.2cm}p{3.2cm}@{}}
+\toprule
+\textbf{System} & \textbf{Approach} & \textbf{Handles capacity/time windows?} & \textbf{Cost/access} & \textbf{Relevant strength} & \textbf{Relevant limitation (for your user)} \\ \midrule
+OR-Tools & Constraint programming + metaheuristics & Yes, both & Free, but requires dev integration & Industry-strength solver & Not usable directly by a non-technical coordinator; a library, not a product \\ \midrule
+Routific / Route4Me & SaaS & Yes & Subscription & Polished UI, dispatch features & Ongoing cost, overkill for a small operator, external dependency \\ \midrule
+Manual (spreadsheet/WhatsApp) & N/A & No automated checking & Free & Familiar, no setup & Error-prone, doesn't scale, matches the pain points your interview surfaced \\ \bottomrule
+\end{tabular}
+\end{table}
+
+\newpage
+\printbibliography
+
+\newpage
+\begin{appendices}
+%This is the beginning of the 
+
+\section{Routific Sample Data} \label{Sample Data}
+This appendix contains the unedited sample data that was imported into Routific's automated route allocation system and the result of which are stored in Figure\ref{fig:routific_optimised_routes} 
+\begin{landscape}
+\begin{longtable}{@{}p{1.6cm}p{5cm}p{1.3cm}p{1.3cm}p{0.9cm}p{1.6cm}p{4.3cm}@{}}
+\caption{Routific Sample Order Data} \label{tab:routific_sample_data} \\
+\toprule
+\textbf{Order} & \textbf{Address} & \textbf{Start} & \textbf{End} & \textbf{Load} & \textbf{Duration (mins)} & \textbf{Notes} \\
+\midrule
+\endfirsthead
+
+\toprule
+\textbf{Order} & \textbf{Address} & \textbf{Start} & \textbf{End} & \textbf{Load} & \textbf{Duration (mins)} & \textbf{Notes} \\
+\midrule
+\endhead
+
+\midrule
+\multicolumn{7}{r}{\textit{Continued on next page}} \\
+\endfoot
+
+\bottomrule
+\endlastfoot
+
+Order 1  & Marina Walk 12, Dubai Marina, Dubai, UAE      & 11:00 & 13:00 & 4 & 5  & Vegetarian meal boxes \\
+Order 2  & Al Wasl Road 45, Jumeirah 1, Dubai, UAE        & 12:00 & 14:00 & 6 & 5  & Leave with concierge \\
+Order 3  & Sheikh Zayed Road, Business Bay, Dubai, UAE    & 11:30 & 13:30 & 3 & 5  & Office delivery, ring bell \\
+Order 4  & Al Barsha 1, Street 12, Dubai, UAE              & 10:00 & 12:00 & 5 & 5  & Gate code 4521 \\
+Order 5  & Downtown Boulevard, Dubai, UAE                  & 13:00 & 15:00 & 2 & 5  & Call on arrival \\
+Order 6  & Jumeirah Beach Road, Umm Suqeim, Dubai, UAE     & 10:00 & 12:00 & 4 & 5  & No pork items \\
+Order 7  & Al Quoz Industrial 3, Dubai, UAE                & 14:00 & 16:00 & 8 & 10 & Bulk order for staff canteen \\
+Order 8  & Motor City, Dubai, UAE                          & 11:00 & 13:00 & 3 & 5  & Fragile packaging \\
+Order 9  & Dubai Silicon Oasis, Dubai, UAE                 & 12:30 & 14:30 & 4 & 5  & Leave at reception \\
+Order 10 & Arabian Ranches, Dubai, UAE                     & 10:30 & 12:30 & 5 & 5  & Gluten free meals \\
+Order 11 & Al Furjan, Dubai, UAE                           & 13:00 & 15:00 & 3 & 5  & Call before arrival \\
+Order 12 & Dubai Sports City, Dubai, UAE                   & 14:30 & 16:30 & 6 & 5  & Weekly subscription box \\
+Order 13 & Jumeirah Village Circle, Dubai, UAE             & 11:00 & 13:00 & 2 & 5  & High protein plan \\
+Order 14 & Palm Jumeirah, Dubai, UAE                       & 15:00 & 17:00 & 4 & 10 & Villa delivery, gate access needed \\
+Order 15 & Mirdif, Dubai, UAE                              & 10:00 & 12:00 & 3 & 5  & Standard plan \\
+Order 16 & Al Nahda, Dubai, UAE                            & 12:00 & 14:00 & 5 & 5  & Family size order \\
+Order 17 & Deira Creek, Dubai, UAE                         & 13:30 & 15:30 & 4 & 5  & Office building, 3rd floor \\
+Order 18 & Dubai Investment Park, Dubai, UAE               & 14:00 & 16:00 & 7 & 10 & Corporate catering order \\
+Order 19 & Discovery Gardens, Dubai, UAE                   & 11:00 & 13:00 & 3 & 5  & Vegan plan \\
+Order 20 & The Springs, Dubai, UAE                         & 10:00 & 12:00 & 4 & 5  & Standard plan \\
+
+\end{longtable}
+\end{landscape}
+\end{appendices}
+
+\end{document}
