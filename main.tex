@@ -17,12 +17,64 @@
 \usepackage{tikz-cd}
 \usepackage{multicol}
 \usepackage{booktabs}% For professional table lines (\toprule, \midrule, \bottomrule)
+\usepackage{array}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
 \usepackage[backend=biber,style=authoryear]{biblatex}
 \addbibresource{references.bib}
 \usepackage[inline]{enumitem} % for inline lists
 \usepackage[title]{appendix} % so the title of appendix is appendix and not A
 \usepackage{pdflscape}   % rotates a single page to landscape
 \usepackage{longtable}   % lets a table span multiple pages
+\usepackage{listings} %allows u to use code
+\usepackage{verbatim}
+\usepackage{xcolor} % colour different text (for code)
+\usepackage[scaled=0.95]{inconsolata} % clean, modern monospace font
+
+% VS Code-inspired code colouring and formatting
+\definecolor{vscodebackground}{HTML}{1E1E1E}
+\definecolor{vscodeforeground}{HTML}{D4D4D4}
+\definecolor{vscodekeyword}{HTML}{C586C0}
+\definecolor{vscodefunction}{HTML}{DCDCAA}
+\definecolor{vscodevariable}{HTML}{9CDCFE}
+\definecolor{vscodestring}{HTML}{CE9178}
+\definecolor{vscodecomment}{HTML}{6A9955}
+\definecolor{vscodeoperator}{HTML}{D19A66}
+\definecolor{vscodelinenumber}{HTML}{858585}
+
+\lstdefinestyle{vscode}{
+    language=Python,
+    backgroundcolor=\color{vscodebackground},
+    basicstyle=\ttfamily\footnotesize\color{vscodeforeground},
+    keywordstyle=\bfseries\color{vscodekeyword},
+    stringstyle=\color{vscodestring},
+    commentstyle=\color{vscodecomment},
+    emph={RegisterTransitCallback,AddDimension,GetDimensionOrDie,enumerate,NodeToIndex,CumulVar,SetRange},
+    emphstyle=\color{vscodefunction},
+    emph=[2]{time_callback_index,routing,time_callback,time_dimension,location_idx,time_window,data,index,manager},
+    emphstyle=[2]\color{vscodevariable},
+    literate=
+        {=}{{{\color{vscodeoperator}=}}}1
+        {+}{{{\color{vscodeoperator}+}}}1,
+    numbers=left,
+    numberstyle=\tiny\color{vscodelinenumber},
+    stepnumber=1,
+    numbersep=10pt,
+    frame=single,
+    rulecolor=\color{black},
+    framerule=0.9pt,
+    framesep=7pt,
+    xleftmargin=1.5em,
+    framexleftmargin=1.2em,
+    xrightmargin=0.5em,
+    breaklines=true,
+    breakatwhitespace=false,
+    showstringspaces=false,
+    columns=fullflexible,
+    keepspaces=true,
+    tabsize=4,
+    captionpos=b
+}
+
 
 \usepackage{graphicx} %for images
 \usepackage{float} % floating images
@@ -135,7 +187,7 @@ I have formated my options for the intended client into a table.
 \begin{table}[H] %changed from htbp to H. If any errors occour change back?
 \centering
 \small
-\begin{tabular}{@{}p{3.2cm}p{3.8cm}p{3.2cm}p{4.2cm}@{}}
+\begin{tabular}{@{}L{3.2cm}L{3.8cm}L{3.2cm}L{4.2cm}@{}}
 \toprule
 \textbf{Prospective Client / Role} & \textbf{Operational Fit (CVRPTW)} & \textbf{Accessibility \& Dialogue} & \textbf{Verdict / Decision} \\ \midrule
 \textbf{Option A:} Small Local Courier Fleet Supervisor & High (Manages multiple vehicles, daily drop-offs, routes vary). & Moderate (Requires corporate permissions/scheduling). & \textbf{Secondary Option:} Good backup, but harder to guarantee rapid feedback loops for testing. \\ \midrule
@@ -150,7 +202,7 @@ Option B (meal-prep delivery) was selected as the primary client as unlike large
 
 
 \subsection{Analysis of Existing Systems}
-
+\label{sec:routific_analysis}
 Commercial-grade route planning applications are designed to support more than navigation between two locations. A delivery coordinator can provide a collection of orders, customer addresses, delivery time windows, vehicle capacities and driver availability. The software can then allocate stops between vehicles, determine an efficient visiting order and distribute the resulting routes to drivers. Many delivery-management platforms also provide live driver tracking, estimated arrival times, customer notifications and proof-of-delivery records, allowing the coordinator to monitor orders from dispatch through to completion. \cite{routific_delivery_management,route4me_delivery_management}
 
 The available systems can be divided into different categories. Google OR-Tools is a developer-focused optimisation library capable of modelling vehicle capacities and customer time windows, but it does not provide a complete interface for a delivery coordinator. \cite{google_ortools_routing} In contrast, subscription platforms such as Routific and Route4Me combine route optimisation with dispatcher dashboards and mobile tools for drivers. Comparing these systems with the client's current spreadsheet-based process will identify useful features, limitations and opportunities for the proposed solution. The comparison will focus on suitability for a small meal-prep business rather than attempting to reproduce every feature of a large commercial logistics platform.
@@ -229,7 +281,7 @@ Figure~\ref{fig:routific_capacity}\subref{fig:routific_sidebar} shows the naviga
     \caption{Routific's overall optimised route map and the two individual driver routes.}
     \label{fig:routific_optimised_routes}
 \end{figure}
-To evaluate how commercial solvers handle the constraints identified in Section \ref{Specification} for CVRPTW a test dataset of 20 localized delivery orders was generated and imported into Routific (by using Comma-Seperated Values format). Each record and value was configured with a specific geographic location, a volumetric load value (metric based from 0-10, with 0 being ) and a strict delivery time window to stress-test the system's scheduling algorithm. A small snippet of the sample data set is provided here.
+To evaluate how commercial solvers handle the constraints identified in Section \ref{Specification} for CVRPTW a test dataset of 20 localized delivery orders was generated and imported into Routific (by using Comma-Seperated Values format). Each record and value was configured with a specific geographic location, a volumetric load value (metric based from 0-10, calculated by mathematical  \(\sum (\text{Load\ of\ Assigned\ Orders})\le \text{Vehicle\ Capacity\ Limit}\)) and a strict delivery time window to stress-test the system's scheduling algorithm. A small snippet of the sample data set is provided here.
 
 %VERY IMPORTANT NOTE RAF, U HAVE TO TAKE A NEW SS OF THE OPTIMISED ROUTE 1 AND 2 WITH THE NEW TIMES DO NOT FORGET CUZ LATER IN FINDINGS U USE A NEW SS WITH DIFF TIMES.
 
@@ -244,7 +296,7 @@ ORD-002 & Jumeirah Lakes Towers, Cluster C & 08:30 - 11:00 & 2 \\
 ORD-003 & Business Bay, Executive Towers & 10:00 - 12:30 & 5 \\
 ORD-004 & Downtown Dubai, Boulevard & 14:00 - 16:00 & 3 \\ \bottomrule
 \end{tabular}
-\caption{Sample extract of the custom CSV dataset imported into Routific (See Appendix \ref{Sample Data} for full dataset).}
+\caption{Sample extract of the custom CSV dataset imported into Routific (see Appendix~\ref{app:routific_sample_data} for the full dataset).}
 \label{tab:csv_sample}
 \end{table}
 
@@ -312,6 +364,7 @@ Another potential source of error is geographic ambiguity. Different streets, bu
 \end{figure}
 
 \subsubsection{Summary of Routific Analysis}
+\label{sec:summary}
 The investigation identified several design choices that may make Routific unsuitable for the intended small-business client and that should be addressed differently in my own system:
 
 \begin{enumerate}
@@ -321,35 +374,65 @@ The investigation identified several design choices that may make Routific unsui
     \item Subscription access. The interface displayed a limited free trial and an ``Upgrade'' prompt, indicating that continued use requires a paid subscription. This may be a barrier for a small meal-prep business, whereas the proposed bespoke system would not impose a recurring software-subscription charge on the client.
 \end{enumerate}
 
-These findings show that an effective route is not defined by distance alone. For the intended client, route validity, balanced driver workloads, reliable address validation and affordable access must also be treated as important system requirements.
+These findings show that an effective route is not defined by distance alone. For the intended client, route validity, balanced driver workloads, reliable address validation and affordable access must also be treated as important system requirements for end-user satisfaction.
 
 
 
-
-\subsection{Evaluation of Pre-existing }
+\subsection{Evaluation of Pre-existing Systems}
+Having conducted an in-depth empirical evaluation of Routific in Section~\ref{sec:routific_analysis}, this section situates those findings alongside the other systems considered in this project's existing-systems research. It is important to distinguish between the depth of evidence available for each system: the findings on Routific are based on direct hands-on testing, including a custom dataset, repeated trials and cross-verification against independent data. Route4Me and Google OR-Tools were not tested directly, so their entries below reflect capabilities stated in their providers' official documentation.\cite{google_ortools_capacity_constraints,google_ortools_time_windows,route4me_capacity_optimisation,route4me_time_windows}
 \begin{table}[H]
 \centering
 \small
 \begin{tabular}{@{}p{2.5cm}p{2.5cm}p{2.2cm}p{2cm}p{2.2cm}p{3.2cm}@{}}
 \toprule
 \textbf{System} & \textbf{Approach} & \textbf{Handles capacity/time windows?} & \textbf{Cost/access} & \textbf{Relevant strength} & \textbf{Relevant limitation (for your user)} \\ \midrule
-OR-Tools & Constraint programming + metaheuristics & Yes, both & Free, but requires dev integration & Industry-strength solver & Not usable directly by a non-technical coordinator; a library, not a product \\ \midrule
-Routific / Route4Me & SaaS & Yes & Subscription & Polished UI, dispatch features & Ongoing cost, overkill for a small operator, external dependency \\ \midrule
-Manual (spreadsheet/WhatsApp) & N/A & No automated checking & Free & Familiar, no setup & Error-prone, doesn't scale, matches the pain points your interview surfaced \\ \bottomrule
+OR-Tools & Constraint programming and metaheuristics & Yes: capacity constraints and time windows are configurable\cite{google_ortools_capacity_constraints,google_ortools_time_windows} & Free, but requires developer integration & Industry-strength solver & Not directly usable by a non-technical coordinator; it is a library rather than a complete product \\ \midrule
+Routific & SaaS & Capacity was applied after clustering in the observed workflow (Section\ref{sec:summary}); time windows produced unexplained idle time (Figure~\ref{fig:routific_time_comparison}\subref{fig:routific_break_times}) & Subscription & Polished interface and dispatch features & Ongoing cost and the workload imbalance identified during direct testing \\ \midrule
+Route4Me & SaaS & Provider documentation states that capacity and time-window constraints are supported\cite{route4me_capacity_optimisation,route4me_time_windows} & Commercial access & Supports configurable operational constraints & Not tested directly; some constraint features must be enabled separately \\ \midrule
+Manual planning (spreadsheet or WhatsApp) & N/A & No automated checking or built-in route optimiser.  & Free & Familiar and requires no setup & Error-prone, does not scale and matches the interview's reported pain points \\ \bottomrule
 \end{tabular}
 \end{table}
 
+% Retained for possible later use; excluded from the compiled document.
+\begin{comment}
+\begin{lstlisting}[style=vscode,caption={Google OR-Tools example demonstrating time-window and waiting-time constraints.},label={lst:ortools_time_windows}]
+#Example of Google-OR tools handling capacity and time windows 
+# 1. Register the time callback (travel time + service time)
+time_callback_index = routing.RegisterTransitCallback(time_callback)
+
+# 2. Add the time dimension (enabling slack/waiting time)
+routing.AddDimension(
+    time_callback_index,
+    60,  # max allowed waiting time (slack)
+    1440, # max total travel time per vehicle (capacity)
+    False, # Don't force start time cumulative to zero
+    "Time"
+)
+time_dimension = routing.GetDimensionOrDie("Time")
+
+# 3. Apply individual time windows to specific location indexes
+for location_idx, time_window in enumerate(data['time_windows']):
+    index = manager.NodeToIndex(location_idx)
+    time_dimension.CumulVar(index).SetRange(time_window[0], time_window[1])
+
+\end{lstlisting}
+\end{comment} 
+%held in a comment so it is usefull to copy later but will not effect the code now
+
+\subsection{Client Interview}
+  
 \newpage
 \printbibliography
 
 \newpage
 \begin{appendices}
-%This is the beginning of the 
+%This is the beginning of the appendix
 
-\section{Routific Sample Data} \label{Sample Data}
-This appendix contains the unedited sample data that was imported into Routific's automated route allocation system and the result of which are stored in Figure\ref{fig:routific_optimised_routes} 
+\section{Routific Sample Data}
+\label{app:routific_sample_data}
+This appendix contains the unedited sample data imported into Routific's automated route allocation system. The resulting routes are shown in Figure~\ref{fig:routific_optimised_routes}.
 \begin{landscape}
-\begin{longtable}{@{}p{1.6cm}p{5cm}p{1.3cm}p{1.3cm}p{0.9cm}p{1.6cm}p{4.3cm}@{}}
+\begin{longtable}{@{}L{1.8cm}L{6cm}L{1.6cm}L{1.6cm}L{1.3cm}L{2.4cm}L{5.6cm}@{}}
 \caption{Routific Sample Order Data} \label{tab:routific_sample_data} \\
 \toprule
 \textbf{Order} & \textbf{Address} & \textbf{Start} & \textbf{End} & \textbf{Load} & \textbf{Duration (mins)} & \textbf{Notes} \\

@@ -10,4 +10,7 @@
 *log
 *fdb_latexmk
 *out
-*toc
+*
+main*
+!main.tex
+!main.pdf
