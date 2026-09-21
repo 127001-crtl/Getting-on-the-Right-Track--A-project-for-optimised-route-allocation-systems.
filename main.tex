@@ -21,7 +21,7 @@
 \newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
 \usepackage[backend=biber,style=authoryear]{biblatex}
 \addbibresource{references.bib}
-\usepackage[inline]{enumitem} % for inline lists
+\usepackage[inline]{enumitem} % for inline lists and customisation of enumeration
 \usepackage[title]{appendix} % so the title of appendix is appendix and not A
 \usepackage{pdflscape}   % rotates a single page to landscape
 \usepackage{longtable}   % lets a table span multiple pages
@@ -29,6 +29,12 @@
 \usepackage{verbatim}
 \usepackage{xcolor} % colour different text (for code)
 \usepackage[scaled=0.95]{inconsolata} % clean, modern monospace font
+\usepackage{siunitx} %SI units 
+\usepackage{realboxes} % for inline code grey boxes
+
+\definecolor{codegray}{named}{lightgray} %for inline code grey
+\newcommand{\code}[1]{\Colorbox{lightgray!30}{\texttt{#1}}} %if u do \code it will run
+
 
 % VS Code-inspired code colouring and formatting
 \definecolor{vscodebackground}{HTML}{1E1E1E}
@@ -103,7 +109,7 @@ The underlying optimisation problem is the Capacitated Vehicle Routing Problem w
 
 \newpage
 \tableofcontents
-\newpage
+\newpage    
 
 \section{Introduction}
 
@@ -281,9 +287,9 @@ Figure~\ref{fig:routific_capacity}\subref{fig:routific_sidebar} shows the naviga
     \caption{Routific's overall optimised route map and the two individual driver routes.}
     \label{fig:routific_optimised_routes}
 \end{figure}
-To evaluate how commercial solvers handle the constraints identified in Section \ref{Specification} for CVRPTW a test dataset of 20 localized delivery orders was generated and imported into Routific (by using Comma-Seperated Values format). Each record and value was configured with a specific geographic location, a volumetric load value (metric based from 0-10, calculated by mathematical  \(\sum (\text{Load\ of\ Assigned\ Orders})\le \text{Vehicle\ Capacity\ Limit}\)) and a strict delivery time window to stress-test the system's scheduling algorithm. A small snippet of the sample data set is provided here.
+To evaluate how commercial solvers handle the constraints identified in Section \ref{Specification} for CVRPTW a test dataset of 20 localized delivery orders was generated and imported into Routific (by using Comma-Seperated Values format). Each record and value was configured with a specific geographic location, a volumetric load value (metric based from 0-10, calculated by mathematical  \(\sum \text{Load\ of\ Assigned\ Orders}\le \text{Vehicle\ Capacity\ Limit}\)) and a strict delivery time window to stress-test the system's scheduling algorithm. A small snippet of the sample data set is provided here.
 
-%VERY IMPORTANT NOTE RAF, U HAVE TO TAKE A NEW SS OF THE OPTIMISED ROUTE 1 AND 2 WITH THE NEW TIMES DO NOT FORGET CUZ LATER IN FINDINGS U USE A NEW SS WITH DIFF TIMES.
+%VERY IMPORTANT NOTE RAF, U HAVE TO TAKE A NEW SS OF THE OPTIMISED ROUTE 1 AND 2 WITH THE NEW TIMES DO NOT FORGET CUZ LATER IN FINDINGS U USE A NEW SS WITH DIFF TIMES.!!!!!!!!!!!!!!!!!!!!
 
 \begin{table}[H]
 \centering
@@ -368,10 +374,10 @@ Another potential source of error is geographic ambiguity. Different streets, bu
 The investigation identified several design choices that may make Routific unsuitable for the intended small-business client and that should be addressed differently in my own system:
 
 \begin{enumerate}
-    \item Workload imbalance. Routific produced routes containing 2 and 18 stops respectively, with no visible mechanism for balancing work between drivers. My optimisation method should therefore penalise large differences in stop count and allocated load, rather than considering only the total distance or overall fleet load.
-    \item Capacity applied after route construction. In the observed workflow, routes were clustered before a specific driver and vehicle capacity were attached. This creates uncertainty over whether an existing route will be rejected or rebuilt when the assigned vehicle has insufficient capacity. My system should check vehicle capacity while constructing and improving each route, rather than treating it as a downstream assignment problem.
-    \item Manual geographic resolution. Ambiguous addresses required the user to identify and correct the selected map location manually. My system should detect multiple geocoding matches before optimisation and require the user to confirm the intended address or coordinates.
-    \item Subscription access. The interface displayed a limited free trial and an ``Upgrade'' prompt, indicating that continued use requires a paid subscription. This may be a barrier for a small meal-prep business, whereas the proposed bespoke system would not impose a recurring software-subscription charge on the client.
+    \item \textbf{Workload imbalance.} Routific produced routes containing 2 and 18 stops respectively, with no visible mechanism for balancing work between drivers. My optimisation method should therefore penalise large differences in stop count and allocated load, rather than considering only the total distance or overall fleet load.
+    \item \textbf{Capacity applied after route construction.} In the observed workflow, routes were clustered before a specific driver and vehicle capacity were attached. This creates uncertainty over whether an existing route will be rejected or rebuilt when the assigned vehicle has insufficient capacity. My system should check vehicle capacity while constructing and improving each route, rather than treating it as a downstream assignment problem.
+    \item \textbf{Manual geographic resolution.} Ambiguous addresses required the user to identify and correct the selected map location manually. My system should detect multiple geocoding matches before optimisation and require the user to confirm the intended address or coordinates.
+    \item \textbf{Subscription access.} The interface displayed a limited free trial and an ``Upgrade'' prompt, indicating that continued use requires a paid subscription. This may be a barrier for a small meal-prep business, whereas the proposed bespoke system would not impose a recurring software-subscription charge on the client.
 \end{enumerate}
 
 These findings show that an effective route is not defined by distance alone. For the intended client, route validity, balanced driver workloads, reliable address validation and affordable access must also be treated as important system requirements for end-user satisfaction.
@@ -420,9 +426,256 @@ for location_idx, time_window in enumerate(data['time_windows']):
 %held in a comment so it is usefull to copy later but will not effect the code now
 
 \subsection{Client Interview}
-  
+Understanding my client's environment directly informs the design of a more reliable and usable product. I interviewed the dispatch manager of a local daily meal-prep delivery business to establish operational constraints and functional requirements.
+
+\newcommand{\rangeofdeliveries}{40 to 60}
+\newcommand{\numberofvehicles}{three delivery vans.}
+
+\begin{enumerate}[label={\LARGE Q\arabic*\,}]
+    \item \textbf{What would you like the program to do?} \\
+    \textit{Client:} "Basically, I need a tool where I can upload our daily customer meal drop-offs—usually~\rangeofdeliveries- addresses and automatically split them between our~\numberofvehicles~. Right now, doing it by hand takes forever because we have tight morning delivery slots, and I need to make sure no van gets overloaded or sent back and forth across Dubai."
+
+%we are using vans for this scenario. maybe i will swtich to motorcycles and a lower amount of set 
+
+    \item \textbf{What tools have you used for route planning in the past, and where do they fall short?} \\
+    \textit{Client:} "We mostly rely on a massive Google Sheet and WhatsApp groups to send stops to drivers. We tried commercial software like Routific, but subscription costs add up fast for a small team, and it often creates unbalanced routes—like giving one driver 18 stops and another only 2—without considering driver workload fairness."
+
+    \item \textbf{What specific features would make route optimization easier for your daily operation?} \\
+    \textit{Client:} "It has to respect vehicle load capacity—our vans carry a maximum of 20 to 25 bag meals. Also, time windows are critical: premium clients expect their breakfast bags between 6:00 AM and 8:00 AM. The program must flag any delivery that cannot be made on time rather than silently failing."
+
+    \item \textbf{What do you particularly enjoy about your current method that we should keep?} \\
+    \textit{Client:} "Our drivers know Google Maps inside out. They don't want to learn a complex new navigation app. If your system can generate the optimal sequence and let me push the final route directly to their phones via a Google Maps link or export, that would fit perfectly into how we already work."
+
+    \item \textbf{Would features like manual route adjustment and load-balancing sound useful to incorporate?} \\
+    \textit{Client:} "Absolutely. Sometimes a driver calls in sick or road closures happen near downtown. Being able to manually swap a stop between drivers or tweak the sequence on a visual interface before locking it in would be a lifesaver."
+
+    \item \textbf{How do you currently verify that a route plan is practical before drivers hit the road?} \\
+    \textit{Client:} "Honestly, it's just guesswork and experience. A good system should clearly show total distance, estimated route duration, and highlight any capacity or time-window violations before we dispatch."
+\end{enumerate}
+
+\subsubsection{Interview Summary}
+Based on the interview, my client has expressed a need for an automated routing optimisation solution that directly tackles the inefficencies of manual route planning. The solution must ensure balanced routes and workload fairness while actively respecting capacity constraints. The client articulated that the system must accomidate for premium customer time limitations while blatantly signaling any time collisions in the system. The application should generate optimised routes and transmit the data onto a familiar navigation application (the client explicitly mentioned Google Maps) and communicated the adequacy of the existing system. Another articulation that was expressed was the need for manual route adjustments and the ability to swap stops between drivers and manipulate the sequence orders on a user-friendly graphical user interface. The final comment is that the system must display practical data (such as total distance, estimated route duration and the highlighting of capacity or time violations) in a manner that is unambiguous. 
+
+
+
+\subsection{Legal, Ethical and Data Protection Considerations}
+The processes illustrated in Figure~\ref{fig:ipos_chart} and Appendix~\ref{app:visual_flowchart} may involve collecting, processing and storing information that identifies individual customers or drivers. Privacy, responsible data handling and the protection of this information must therefore be considered throughout the design and development of the solution. This section outlines the relevant legal, ethical and data protection considerations.
+
+\subsubsection{Data Protection and Privacy}
+The solution may handle the following categories of information:
+\begin{enumerate}
+    \item Customer names or identification numbers.
+    \item Delivery addresses.
+    \item Telephone numbers.
+    \item Order histories.
+    \item Precise locations of drivers and customers.
+    \item Driver identities.
+    \item Driver performance records.
+\end{enumerate} 
+Where these records identify an individual, either directly or when combined with other information, they may constitute personally identifiable information (PII) under NIST guidance or personal data under the GDPR.\cite{nist_sp_800_122,eu_gdpr_2016}. The system should therefore collect only the information needed for its intended functions and protect it against unauthorised access, disclosure or misuse.
+
+I will design the system to only collect and retain personal information that is strictly necessary for route optimisation. I will also implement the following: 
+
+\begin{enumerate}
+    \item Encryption at rest and in transit
+    \item Irreversable hashing algorithms 
+    \item Authentication and role-based access rights
+    \item Limited data retention
+    \item Anonymised customer and driver identifiers
+    \item Audit logs
+    \item Clear explication of what data is collected and why.
+\end{enumerate} 
+
+\subsubsection{Algorithmic Fairness}
+As the soultion may integrate a tiered service and deliberately prioritise one class of customers over others (second-degree price discrimination). Courts and regulatory bodies globally recognize this as inherently legal, because the difference in treatment is justified by a corresponding difference in financial consideration, however this system may treat similar customers differently (which voilates the basic notion of distributive justice and fairness). I will avoid this by concreating the premium service to offer an earlier delivery window while not overriding the driver safety or the promise made to other customers. I will ensure to protect every customer's agreed delivery window, while allowing narrower windows purchased by premium customers and I will 
+
+Futhermore, another cuase of concern may be the solutions ability to record drivers average speeds compared to a baseline, for example 
+\[
+\left.
+\begin{aligned}
+&\text{Driver A = 1.2x} \\
+&\text{Driver B = 1.0x} \\
+&\text{Driver C = 0.8x}
+\end{aligned}
+\right\} \text{where the baseline speed ($x$) is being multiplied by the coefficents}
+\]
+If the solution were to then give the driver with the fastest speeds (driver A in this case), this may overload the drivers (which this solution is ment to reduce). Therefore, I must distinguish between optimisation efficiency and maximising workload for the fastest employee (as shown in \ref{fig:routific_capacity}\subref{fig:routific_main}). To solve this, the solution may introduce a constraint such as $\text{Workload}_{\max} - \text{Workload}_{\min} < L$ or constrict the number of deliveries or hours to a set maximum. 
+
+The measure of relative speed is also a cuase for ethical concern as it may not be a fair measure of efficeincy. This is becuase a driver may appear slow due to factors which he may not be able to control.
+ 
+\begingroup
+\renewcommand{\arraystretch}{1.25}
+\noindent
+\begin{tabular}{@{}L{0.46\linewidth}@{\hspace{0.08\linewidth}}L{0.46\linewidth}@{}}
+\textbullet\ Vehicle differences & \textbullet\ Traffic \\
+\textbullet\ Road restrictions & \textbullet\ Weather \\
+\textbullet\ Delivery area characteristics and temporary circumstances & \\
+\end{tabular}
+\par
+\endgroup
+
+\subsubsection{Supervision and Oversight}
+The system should support, rather than replace, the judgement of a delivery coordinator. Its recommendations will depend on the data and constraints provided, which may not capture unexpected disruptions or operational knowledge available to the dispatcher. An authorised dispatcher should therefore be able to review the generated plan before dispatch and:
+
+\begin{itemize}
+    \item Override a suggested route or adjust the order of its stops.
+    \item Reassign an order to another driver.
+    \item Remove an unavailable driver from the active fleet and reallocate affected deliveries.
+    \item Change delivery priorities while respecting agreed delivery windows.
+    \item Lock selected delivery assignments so that subsequent optimisation preserves them.
+    \item Reject the generated solution and request a revised plan.
+\end{itemize}
+
+Manual control should not bypass the checks used to establish route validity. After any adjustment, the system should recalculate route metrics and check vehicle capacity, delivery windows and driver shift limits. Any violations or unallocated deliveries should be clearly highlighted, and an invalid plan should not be approved for dispatch. Changes should also be recorded in an audit log so that decisions can be reviewed and responsibility remains clear.
+
+\subsubsection{Driver Health, Safety and Employment}
+As discussed in Section~\ref{sec:background}, the driver welfare concerns motivating this project include long working hours, exposure to extreme heat, fatigue and financial pressure to complete more deliveries. That discussion also highlights how performance-based pay and algorithmic pressure may encourage unsafe driving when delays threaten earnings. The workload imbalance identified during the Routific investigation, summarised in Section~\ref{sec:summary}, showcase long continous drive times with little to no breaks. While this may be efficient computationally, it may constitute to an unhealthy lifestyle. To mitigate this, I will introduce mandatory breaks into the solution.   
+
+\newpage
+\section{Design}
+
+\subsection{Data Specification}
+\subsubsection{Data Dictionary}
+
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{@{}L{2.5cm}L{1.6cm}L{4.2cm}L{3.8cm}L{2.2cm}@{}}
+\toprule
+\textbf{Variable} & \textbf{Data Type} & \textbf{Validation / Constraints} & \textbf{Purpose / Description} & \textbf{Example} \\ \midrule
+\code{studentName} & String & Must not be empty; alphabetic characters only & Stores the student's name & ``Ahmed Ali'' \\ \bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Data Volumes Estimations}
+
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{@{}L{2.5cm}L{3.0cm}L{3.8cm}L{2.6cm}L{2.4cm}@{}}
+\toprule
+\textbf{Data Item} & \textbf{Description} & \textbf{Estimated Size per Use (\unit{\kilo\byte})} & \textbf{Frequency Estimate} & \textbf{Total Volume (Daily)} \\ \midrule
+studentName & String & Must not be empty; alphabetic characters only & Stores the student's name & ``Ahmed Ali'' \\ \bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Evaluation of Algorithms}
+Capacitated Vehicle Routing Problem (CVRP) is solved using three main families of algorithms: exact algorithms, classical heuristics, and metaheuristics/hybrid methods. Evaluating and comparing these changes 
+
+\subsubsection{Exact Algorithms}
+Exact algorithms guarantee the absolutle mathematically optimal route, however they are notoriously slow as the number of parameters (delivery locations) grow. 
+
+\begin{enumerate}
+    \item \textbf{Branch-Cut-and-Price (BCP).} Combines branch-and-bound, cutting planes, and column generation. It is a well-established exact approach for CVRP: \textcite{pecin2017improved_bcp} solved all instances in their benchmark set with up to 199 customers, as well as some larger instances with up to 360 customers. These are experimental results, not a guaranteed problem-size limit.
+
+    \textbf{Time complexity:} implementation-dependent, with a binary search tree of depth $d$ containing up to $\mathcal{O}(2^d)$ nodes and nonconstant work per node; see Appendix~\ref{app:complexity_bcp} for the calculation and assumptions.
+    \item \textbf{Mixed-Integer Programming (MIP).} Formulates the routing problem with mathematical equations and integer variables. It works well for very small sets (under 50 locations) but struggles to scale.
+\end{enumerate}
+
+\subsubsection{Classical Heuristics}
+Heuristics are fast, rule-based procedures that quickly build a practical route without guaranteeing optimality. They often follow a cluster-first, route-second or route-first, cluster-second design.
+
+\begin{enumerate}
+    \item \textbf{Nearest-Neighbour (NN) Construction.} Starting from the depot, the vehicle repeatedly travels to the closest unvisited customer that does not violate the current constraints (capacity, time window), until no further customer can be added, at which point the vehicle returns to the depot and, if unserved customers remain, a new route is started. NN is simple to implement, easy to reason about and debug, and naturally extends to include constraint checks at the point of construction rather than as an afterthought -- directly addressing the capacity-applied-after-construction weakness identified in Routific (Section~\ref{sec:summary}). Its principal disadvantage is short-sightedness: a locally optimal choice early in the route can force a long, inefficient "straggler" journey later, typically producing routes 15--25\% longer than optimal.\cite{ref_nn_performance}. 
+
+    \textbf{Time complexity:} $\mathcal{O}(n^2)$ for the basic nearest-neighbour scan over $n$ vertices; see Appendix~\ref{app:complexity_nn} for the derivation and assumptions.
+
+    \item \textbf{Clarke-Wright Savings Algorithm.} Begins by assigning every customer their own individual round-trip route from the depot, then iteratively merges pairs of routes that yield the greatest "saving" in total distance, provided the merge does not violate vehicle capacity. Savings tends to outperform NN on solution quality and is a long-standing industry-standard heuristic, but it is more involved to implement correctly (it requires computing and re-sorting a savings list of every customer pair, and re-checking feasibility after every merge) and its natural formulation targets capacity constraints more directly than time windows, which would need to be retrofitted as an additional feasibility check on each candidate merge.\cite{ref_clarke_wright}
+
+    \textbf{Time complexity:} $\mathcal{O}(n^2\log n)$ for $n$ customers under the implementation assumptions in Appendix~\ref{app:complexity_savings}, with sorting the savings list dominating the cost.
+
+    \item \textbf{Sweep Algorithm.} Customers are first clustered by sweeping a rotating ray from the depot and grouping consecutive customers into a cluster until a vehicle's capacity is reached (cluster-first), after which a route is optimised within each cluster (route-second), often using NN or a TSP solver. Sweep is intuitive for capacity constraints and produces visually sensible route clusters, but does not naturally incorporate time windows into the clustering step, and its solution quality is sensitive to the depot's position relative to the customers.\cite{gillett1974heuristic}
+
+    \textbf{Time complexity:} $\mathcal{O}(n^2)$ for $n$ customers under the implementation assumptions in Appendix~\ref{app:complexity_sweep}, with sorting the savings list dominating the cost.
+\end{enumerate}
+
+\subsubsection{Metaheuristics and Hybrid Methods}
+Metaheuristics wrap a constructive heuristic with an iterative improvement process to escape local optima and approach near-optimal solutions.
+
+\begin{enumerate}
+    \item \textbf{2-opt / Or-opt Local Search.} Given an existing route, 2-opt repeatedly reverses a segment of the route if doing so reduces total distance, removing "crossed" paths; Or-opt similarly relocates short chains of one to three consecutive customers to a better position. Both are simple to layer on top of any constructive heuristic (including NN) as a post-processing improvement step, and are computationally cheap for realistic instance sizes (tens of customers).\cite{ref_2opt}
+
+    \item \textbf{Genetic Algorithms (GA) / Simulated Annealing (SA) / Tabu Search.} These maintain a population (GA) or a single evolving solution (SA, Tabu) and apply randomised or memory-guided moves across many iterations to search a much larger portion of the solution space than local search alone, typically producing solutions closer to optimal than a constructive heuristic with a simple local search. Their cost is implementation and tuning complexity: each requires careful parameter selection (mutation rate, cooling schedule, tabu tenure), longer development time, and is considerably harder to debug when a route is invalid, since the fault could lie in the move operator, the fitness function, or the constraint-checking logic.\cite{ref_metaheuristics}
+\end{enumerate}
+
+\subsubsection{Comparison of Candidate Approaches}
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{@{}L{2.6cm}L{2.6cm}L{2.6cm}L{2.6cm}L{3.4cm}@{}}
+\toprule
+\textbf{Algorithm} & \textbf{Solution quality} & \textbf{Implementation complexity} & \textbf{Ease of extending to capacity/time windows} & \textbf{Suitability given project constraints} \\ \midrule
+Exact (BCP/MIP) & Optimal & Very high & High (constraints are declared, not coded) & Unsuitable: impractical to implement from scratch within an A-level timeframe, and does not scale to the client's 40--60 daily orders \\ \midrule
+Nearest-Neighbour & Low--moderate & Low & High -- constraints checked directly at each construction step & Strong fit: matches current skill level, fast to implement and test, directly solves the Routific capacity-timing flaw \\ \midrule
+Clarke-Wright Savings & Moderate--high & Moderate--high & Moderate -- time windows require retrofitting & Weaker fit: meaningfully better quality, but a higher implementation and debugging cost for the remaining time available \\ \midrule
+Sweep & Moderate & Moderate & Low for time windows & Weaker fit: clustering step does not map cleanly onto the client's strict morning windows \\ \midrule
+2-opt (as improvement) & Improves any of the above & Low--moderate & N/A (post-processing) & Strong fit: cheap to add on top of NN once NN is working and tested \\ \midrule
+GA / SA / Tabu Search & High & Very high & Moderate--high, but adds further tuning complexity & Unsuitable as a primary method: highest risk of an incomplete or unreliable Technical Solution given available development time \\ \bottomrule
+\end{tabular}
+\caption{Comparison of candidate CVRPTW algorithms against project constraints.}
+\label{tab:algorithm_comparison}
+\end{table}
+
+
+\subsubsection{Conclusion and Justification}
+An exact algorithm was rejected outright: Branch-Cut-and-Price and MIP formulations guarantee optimality but require solver expertise and computation time that are both incompatible with a single-developer A-level project and a client dataset of 40--60 daily orders.
+
+Of the remaining heuristics, this project will use a \textbf{nearest-neighbour construction heuristic, extended with capacity and time-window feasibility checks applied at each step of construction, followed by a 2-opt local search as a route-improvement stage}. This decision was reached against three explicit criteria rather than a single preference:
+
+\begin{enumerate}
+    \item \textbf{Correctness and debuggability over marginal solution quality.} A route that reliably respects every capacity and time-window constraint is of greater practical value to the client than a marginally shorter route that occasionally produces an invalid plan. Section~\ref{sec:summary} identified exactly this trade-off as a weakness in Routific: my system should check feasibility \textit{during} construction rather than as a downstream step. Nearest-neighbour is the most direct heuristic in which to embed that check, since candidate customers can simply be excluded from consideration the moment they would violate a constraint.
+    \item \textbf{Development time and risk.} With deadlines from other qualifications competing for the same time as this NEA, a heuristic that can be implemented, tested and debugged correctly is of more value than a more sophisticated metaheuristic that risks being incomplete or unreliable at submission. Clarke-Wright and Sweep were considered as moderate-complexity alternatives with better solution quality, but were judged to carry a higher implementation cost for the remaining project time relative to their benefit, particularly given that time windows are not a natural fit for either method without additional retrofitting.
+    \item \textbf{A staged path to a higher mark band.} 2-opt is retained as a planned improvement stage precisely because it can be added \textit{after} a correct, tested nearest-neighbour baseline exists, without requiring that baseline to be rewritten. This allows the project to demonstrate a working, constraint-respecting baseline early, then extend it -- an approach that is both lower-risk and, if time allows, gives the option of implementing and evaluating an additional metaheuristic (e.g. simulated annealing) as a stretch objective for comparison against the baseline in the Evaluation section, rather than as a required deliverable the whole system depends on.
+\end{enumerate}
+
+
+
+\subsection{Visualisation of system processes}
+\subsubsection{System Process Visualisation}
+
+\begin{figure}[H]
+    \centering
+    
+    \setlength{\fboxsep}{5mm}%
+    \setlength{\fboxrule}{0.5pt}%
+    \makebox[\linewidth][c]{\fbox{\includegraphics[width=1.07625\linewidth,height=0.861\textheight,keepaspectratio]{Images/Flowcharts/Frame 2.pdf}}}
+    \caption{System process flowchart.}
+    \label{fig:system_process_flowchart}
+\end{figure}
+
+The creation of a flowchart for the purposes of visualising the processes of the intended soultion has been a useful approach is it has allowed clear visalisation and decomposition of abstract processes and illustration of sequences of processes. The flowchart will also help during the development of the solution as it acts as a potential blueprint and can help identify inefficiencies and logical errors before execution and development. Note that capacity and time-window admission happen inside Construct routes, and Check constraints validates only whole-plan feasibility (unallocated stops, route-level limits)
+
+\subsubsection{Information Processing Cycle}
+
+\begin{figure}[H]
+    \centering
+    \makebox[\linewidth][c]{\includegraphics[width=1.1\linewidth,keepaspectratio]{Images/Flowcharts/ipos_chart.pdf}}
+    \caption{Input, processing, output and storage (IPOS) cycle.}
+    \label{fig:ipos_chart}
+\end{figure}
+
+To further reinforce the benifits of visualising the processes of the solution, I have created an IOPS chart to showcase how raw input data transforms by processes to outputs and where it may be saved in, it also allows me to visualise potential missing steps or unaccounted errors in the solution.    
+
+\subsubsection{Visualisation of Flow of Data}
+
+\begin{figure}[H]
+    \centering
+    \makebox[\linewidth][c]{\includegraphics[width=1.1\linewidth,keepaspectratio]{Images/Flowcharts/Blank_diagram_padded.pdf}}
+    \caption{Data flow through the route allocation system.}
+    \label{fig:data_flow}
+\end{figure}
+
+
+The diagram summarises how order and vehicle data move through the system. The delivery coordinator provides the initial records, which are validated and geocoded before a distance--time matrix is produced. Routes are then constructed, checked against the system constraints and improved before their metrics and warnings are displayed. The coordinator may manually adjust the proposed routes, after which they are checked again, while the final route results and audit information are stored for future review.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% start of refrences
 \newpage
 \printbibliography
+
+
 
 \newpage
 \begin{appendices}
@@ -474,6 +727,128 @@ Order 20 & The Springs, Dubai, UAE                         & 10:00 & 12:00 & 4 &
 
 \end{longtable}
 \end{landscape}
+
+\begin{landscape}
+\section{System Process Visualisation Flowchart}
+\label{app:visual_flowchart}
+This appendix presents an enlarged version of the system process flowchart in Figure~\ref{fig:system_process_flowchart}, preserving all content and proportions for clearer reading.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth,keepaspectratio]{Images/Flowcharts/Frame 2.pdf}
+    \caption{Enlarged system process flowchart.}
+    \label{fig:system_process_flowchart_landscape}
+\end{figure}
+\end{landscape}
+
+\clearpage
+\section{Algorithm Time Complexity Calculations}
+\label{app:algorithm_complexity}
+This appendix presents the calculations supporting the complexity summaries in the algorithm evaluation. The bounds depend on the implementation assumptions stated below.
+
+\subsection{Branch-Cut-and-Price}
+\label{app:complexity_bcp}
+BCP combines branching with column generation and cutting planes. Processing a search-tree node can require repeated linear-programming solves, pricing searches and cut separation, so its cost is not a single constant-time operation.\parencite{pessoa2020generic_vrp}
+
+For a binary branching implementation, let $d$ be the maximum search-tree depth, with the root at depth zero, and let $B$ be the number of processed nodes. A full binary tree gives the following upper bound:
+\[
+\begin{aligned}
+    B &\le \sum_{j=0}^{d} 2^j \\
+      &= 1+2+4+\dots+2^d \\
+      &= 2^{d+1}-1.
+\end{aligned}
+\]
+Let $T_{\text{setup}}$ denote preprocessing time and $C_{\text{node}}$ an upper bound on the total work at any processed node, including all pricing and cutting iterations and branching evaluations. Then:
+\[
+\begin{aligned}
+    T_{\text{BCP}} &\le T_{\text{setup}}+B C_{\text{node}} \\
+    &\le T_{\text{setup}}+(2^{d+1}-1)C_{\text{node}} \\[0.5em]
+    T_{\text{BCP}} &= \mathcal{O}\!\left(T_{\text{setup}}+2^d C_{\text{node}}\right).
+\end{aligned}
+\]
+This is a conditional search-tree bound, not a universal $\mathcal{O}(2^n)$ running time: the depth $d$ is not necessarily the number of customers $n$, and $C_{\text{node}}$ also depends on the instance and implementation. In particular, the generic elementary shortest-path problem with resource constraints, used in vehicle-routing pricing, is strongly NP-hard.\parencite{irnich2006shortest_path} Pruning may substantially reduce the number of nodes actually explored.
+
+Algorithm sources: \textcite{pecin2017improved_bcp,pessoa2020generic_vrp}. The calculation above is a derivation under a binary-branching model, rather than a complexity theorem quoted from these papers.
+
+\subsection{Nearest-Neighbour Construction}
+\label{app:complexity_nn}
+Given a graph $G = (V, E)$ with $\lvert V\rvert = n$ vertices, the basic nearest-neighbour scan examines each remaining unvisited vertex before selecting the next one. Assuming constant-time distance lookups and candidate checks, the number of candidate examinations is:
+\[
+\begin{aligned}
+    \text{Total Operations} &= \sum_{k=1}^{n-1} (n - k) \\
+    &= (n - 1) + (n - 2) + \dots + 1 \\
+    &= \frac{n(n - 1)}{2} \\[0.5em]
+    \text{Time Complexity} &= \mathcal{O}(n^2).
+\end{aligned}
+\]
+This calculation describes the basic scan; additional route restarts or more expensive feasibility checks must be accounted for separately in the constrained implementation.
+
+Algorithm source: \textcite{Rosenkrantz1977}.
+
+\subsection{Clarke-Wright Savings Algorithm}
+\label{app:complexity_savings}
+Let $n$ be the number of customers, excluding the depot, and $m$ the number of distinct customer pairs. Each customer is paired with every customer that follows it, so no pair is counted twice:
+\[
+\begin{aligned}
+    m &= \sum_{k=1}^{n-1} (n-k) \\
+      &= (n-1)+(n-2)+\dots+1 \\
+      &= \frac{n(n-1)}{2} \\[0.5em]
+    T_{\text{compute}}(n) &= \mathcal{O}(m)=\mathcal{O}(n^2).
+\end{aligned}
+\]
+Assuming each saving takes constant time to calculate, computing the list is quadratic. Sorting the $m$ savings once with an $\mathcal{O}(m\log m)$ comparison sort then gives:
+\[
+\begin{aligned}
+    T_{\text{sort}}(n) &= \mathcal{O}(m\log m) \\
+    &= \mathcal{O}\!\left(\frac{n(n-1)}{2}\log\!\left(\frac{n(n-1)}{2}\right)\right) \\
+    &= \mathcal{O}(n^2\log(n^2)) \\
+    &= \mathcal{O}(2n^2\log n) \\
+    &= \mathcal{O}(n^2\log n).
+\end{aligned}
+\]
+For a single pass through the sorted list, assume that route membership is maintained using disjoint-set union with path compression and union by rank, and that endpoint and capacity checks take constant time. Here, $\alpha(n)$ denotes the inverse Ackermann function associated with the amortised cost of disjoint-set operations. Under these implementation assumptions:
+\[
+\begin{aligned}
+    T_{\text{merge}}(n) &= \mathcal{O}(m\alpha(n)) \\
+    &= \mathcal{O}(n^2\alpha(n)) \\[0.5em]
+    T_{\text{total}}(n) &= T_{\text{compute}}(n)+T_{\text{sort}}(n)+T_{\text{merge}}(n) \\
+    &= \mathcal{O}(n^2+n^2\log n+n^2\alpha(n)) \\
+    &= \mathcal{O}(n^2\log n).
+\end{aligned}
+\]
+The sorting term dominates this bound: $n$ is the input size, while $n^2$ describes the growth in the number of pairs, not a maximum value of $n$. Additional checks that scan entire routes, such as recomputing time-window feasibility, would need to be analysed separately.
+
+Algorithm source: \textcite{clarke1964scheduling}. The calculation above is an implementation-dependent complexity analysis.
+
+\subsection{Sweep Algorithm}
+\label{app:complexity_sweep}
+Let $n$ be the number of customers, excluding the depot. The clustering phase calculates each customer\textquotesingle s polar angle relative to the depot, sorts the customers by angle, then assigns them to routes in a single sweep. Assuming constant-time angle calculations and capacity checks:
+\[
+\begin{aligned}
+    T_{\text{angles}}(n) &= \mathcal{O}(n) \\
+    T_{\text{sort}}(n) &= \mathcal{O}(n\log n) \\
+    T_{\text{sweep}}(n) &= \mathcal{O}(n) \\[0.5em]
+    T_{\text{clustering}}(n) &= T_{\text{angles}}(n)+T_{\text{sort}}(n)+T_{\text{sweep}}(n) \\
+    &= \mathcal{O}(n+n\log n+n) \\
+    &= \mathcal{O}(n\log n).
+\end{aligned}
+\]
+Optional optimisation within each route has a separate cost. If the $k$ routes contain $m_1,\dots,m_k$ customers, with $\sum_{i=1}^{k}m_i=n$, and the chosen route-ordering heuristic takes $\mathcal{O}(m_i^2)$ time per route, then:
+\[
+\begin{aligned}
+    T_{\text{ordering}}(n) &= \mathcal{O}\!\left(\sum_{i=1}^{k}m_i^2\right), \\
+    \sum_{i=1}^{k}m_i^2 &\le \left(\sum_{i=1}^{k}m_i\right)^2=n^2, \\[0.5em]
+    T_{\text{total}}(n) &= T_{\text{clustering}}(n)+T_{\text{ordering}}(n) \\
+    &= \mathcal{O}(n\log n+n^2) \\
+    &= \mathcal{O}(n^2).
+\end{aligned}
+\]
+The $\mathcal{O}(n\log n)$ bound applies to clustering alone. The bound including route ordering depends on the chosen heuristic; it is not a general bound for solving the travelling salesperson problem exactly.
+
+Algorithm source: \textcite{gillett1974heuristic}. The calculation above is an implementation-dependent complexity analysis.
+
+
+
 \end{appendices}
 
 \end{document}
