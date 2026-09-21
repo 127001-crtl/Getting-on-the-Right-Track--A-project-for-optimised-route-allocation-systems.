@@ -1,18 +1,16 @@
+# LaTeX temporary build files to ignore
 *.aux
 *.log
 *.fls
 *.bcf
 *.xml
 *.synctex.gz
-*.pdf
 *.bbl
-*blg
-*log
-*fdb_latexmk
-*out
-*
-main*
-!main.tex
-!main.pdf
-!main.py
+*.blg
+*.fdb_latexmk
+*.out
 
+# Ignore the main compiled PDF if you don't want it online
+# (Remove this line if you DO want to track main.pdf)
+*.pdf
+!main.pdf

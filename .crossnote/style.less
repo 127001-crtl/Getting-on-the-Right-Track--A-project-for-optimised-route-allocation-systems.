@@ -1,0 +1,184 @@
+/* Please visit the URL below for more information: */
+/*   https://shd101wyy.github.io/markdown-preview-enhanced/#/customize-css */
+
+/*
+  Matches: \documentclass[11pt]{article}, \usepackage[margin=1in]{geometry},
+  \setlength{\parindent}{0pt}, \setlength{\parskip}{1\baselineskip},
+  \usepackage{booktabs}
+
+  Convention used for heading levels (adjust if yours differs):
+    #    -> document title (\title / \maketitle) — NOT numbered
+    ##   -> \section        -> numbered "1", "2", ...
+    ###  -> \subsection     -> numbered "1.1", "1.2", ...
+    #### -> \subsubsection  -> numbered "1.1.1", ...
+*/
+
+.markdown-preview.markdown-preview {
+
+  // ---- page geometry: US letter, 1in margins => 6.5in text width ----
+  max-width: 6.5in;
+  margin: 0 auto;
+  padding: 1in 0;
+  background: #ffffff;
+
+  // ---- body font: Computer-Modern-ish serif stack ----
+  font-family: "Latin Modern Roman", "CMU Serif", "STIX Two Text", Cambria, Georgia, "Times New Roman", serif;
+  font-size: 11pt;
+  line-height: 1.35;
+  color: #000000;
+  text-align: justify;
+  hyphens: auto;
+
+  // ---- parskip: no indent, gap between paragraphs instead ----
+  p {
+    text-indent: 0;
+    margin: 0 0 1em 0;
+  }
+
+  // reset heading counters at the top of the document
+  counter-reset: h2counter;
+
+  h1 {
+    // treated as \title — centred, large, unnumbered, own block
+    font-size: 20pt;
+    font-weight: bold;
+    text-align: center;
+    margin: 0 0 0.3em 0;
+    border: none;
+  }
+
+  h2 {
+    // \section
+    counter-reset: h3counter;
+    counter-increment: h2counter;
+    font-size: 14.4pt;
+    font-weight: bold;
+    text-align: left;
+    margin: 1.8em 0 0.8em 0;
+    border: none;
+    &::before {
+      content: counter(h2counter) "\0000a0\0000a0";
+    }
+  }
+
+  h3 {
+    // \subsection
+    counter-reset: h4counter;
+    counter-increment: h3counter;
+    font-size: 12.4pt;
+    font-weight: bold;
+    text-align: left;
+    margin: 1.4em 0 0.6em 0;
+    &::before {
+      content: counter(h2counter) "." counter(h3counter) "\0000a0\0000a0";
+    }
+  }
+
+  h4 {
+    // \subsubsection
+    counter-increment: h4counter;
+    font-size: 11pt;
+    font-weight: bold;
+    text-align: left;
+    margin: 1.2em 0 0.5em 0;
+    &::before {
+      content: counter(h2counter) "." counter(h3counter) "." counter(h4counter) "\0000a0\0000a0";
+    }
+  }
+
+  // ---- lists ----
+  ul, ol {
+    margin: 0 0 1em 0;
+    padding-left: 2em;
+  }
+  li {
+    margin-bottom: 0.25em;
+  }
+
+  // ---- tables: booktabs look (top rule, header rule, bottom rule only) ----
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0 1.4em 0;
+    font-size: 10.5pt;
+  }
+  thead {
+    border-top: 1.4pt solid #000000;
+    border-bottom: 0.9pt solid #000000;
+  }
+  th {
+    font-weight: bold;
+    text-align: left;
+    padding: 5px 8px;
+  }
+  td {
+    padding: 5px 8px;
+    border: none;
+  }
+  tbody tr:last-child {
+    border-bottom: 1.4pt solid #000000;
+  }
+  tr {
+    background: transparent !important; // no zebra striping, matches booktabs
+  }
+
+  // ---- figures / captions (Figure X: ..., Table X: ...) ----
+  img {
+    display: block;
+    max-width: 100%;
+    margin: 1em auto 0.3em auto;
+  }
+  figure {
+    margin: 1.4em 0;
+    text-align: center;
+  }
+  figcaption, .caption {
+    font-size: 10pt;
+    text-align: center;
+    margin-top: 0.4em;
+    strong, b {
+      font-weight: bold;
+    }
+  }
+
+  // ---- inline emphasis ----
+  strong, b { font-weight: bold; }
+  em, i { font-style: italic; }
+
+  // ---- links: plain, no hyperref-style boxes ----
+  a {
+    color: #000000;
+    text-decoration: none;
+    border-bottom: 0.5pt solid #666666;
+  }
+
+  // ---- blockquotes ----
+  blockquote {
+    margin: 1em 2em;
+    padding-left: 1em;
+    border-left: 2pt solid #999999;
+    font-style: italic;
+    color: #222222;
+  }
+
+  // ---- code ----
+  code {
+    font-family: "Latin Modern Mono", "Courier New", monospace;
+    font-size: 10pt;
+    background: #f4f4f4;
+    padding: 0.1em 0.3em;
+  }
+  pre code {
+    display: block;
+    padding: 0.8em;
+    line-height: 1.3;
+    overflow-x: auto;
+  }
+
+  // ---- horizontal rule ----
+  hr {
+    border: none;
+    border-top: 0.5pt solid #999999;
+    margin: 2em 0;
+  }
+}
