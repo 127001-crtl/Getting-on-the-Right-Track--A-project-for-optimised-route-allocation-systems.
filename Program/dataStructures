@@ -1,0 +1,51 @@
+class Delivery:
+    def __init__(self, id, demand, start, end, location):
+        self.DeliveryID = id
+        self.Demand = demand
+        self.TimeStart = start
+        self.TimeEnd = end
+        self.Location = location
+
+#In a vehicle routing problem, you usually need to track many deliveries at once. Instead of storing them as loose variables, I have stored each one as an object with all relevant attributes. That makes the algorithm easier to write and reason about.
+
+#In short: it is a structured way to represent one delivery so the route optimizer can process lots of them cleanly.
+
+class Vehicle:
+    def __init__(self, id, capc, depot, start, end):
+        self.VehicleID = id
+        self.Capacity = capc
+        self.DepotLocation = depot
+        self.ShiftStart = start
+        self.ShiftEnd = end
+
+#Keep in mind any locations will hold a Tuple type where (x,y) where x is the longitudal values and y holds the latitudal values.
+
+#Example here:
+Example_delivery1 = Delivery(1, 5, 9, 11, (51.5074, -0.1278))
+Example_vehicle1 = Vehicle(1, 100, (51.5000, -0.1200), 8, 18)
+
+class Route:
+    def __init__(self, vehicle):
+        self.Vehicle = vehicle
+        self.Stops = []                  # ordered list of Delivery objects
+        self.TotalLoad = 0               # sum of demands for all deliveries in the route
+        self.TotalDistance = 0.0        # total travel distance for the route
+        self.TotalDuration = 0.0         # total route time including travel/service time
+
+    def add_stop(self, delivery):
+        self.Stops.append(delivery)
+        self.TotalLoad += delivery.Demand
+
+    def set_totals(self, distance, duration):
+        self.TotalDistance = distance
+        self.TotalDuration = duration
+
+    def __len__(self):
+        return len(self.Stops)
+
+    def __repr__(self):
+        return (
+            f"Route(VehicleID={self.Vehicle.VehicleID}, "
+            f"Stops={len(self.Stops)}, TotalLoad={self.TotalLoad}, "
+            f"TotalDistance={self.TotalDistance}, TotalDuration={self.TotalDuration})"
+        )
